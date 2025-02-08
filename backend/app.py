@@ -8,7 +8,7 @@ app = Flask(__name__)
 CORS(app)  # Enable Cross-Origin Resource Sharing for frontend communication
 
 # Initialize OpenAI API (Ensure you have your API key)
-OPENAI_API_KEY = "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"
+OPENAI_API_KEY = "your-api-key-here"
 client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
 
