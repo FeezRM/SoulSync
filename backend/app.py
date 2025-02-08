@@ -50,8 +50,8 @@ def upload_to_s3(file_path, bucket_name, s3_filename):
 
 # Function: Convert Speech to Text using AWS Transcribe
 def speech_to_text(audio_file):
-    bucket_name = "my-ai-audio-bucket"  # S3 bucket where audio is stored
-    output_bucket = "my-ai-transcript-bucket"  # S3 bucket for transcript storage
+    bucket_name = "my-ai-audio-bucket"
+    output_bucket = "my-ai-transcript-bucket"
     s3_filename = str(uuid.uuid4()) + ".wav"
 
     s3_uri = upload_to_s3(audio_file, bucket_name, s3_filename)
@@ -81,7 +81,6 @@ def speech_to_text(audio_file):
             .decode("utf-8")
         )
 
-        # Load full transcript JSON
         transcript_json = json.loads(transcript_data)
         transcript_text = transcript_json["results"]["transcripts"][0]["transcript"]
         latest_message = transcript_text.strip()
@@ -100,7 +99,7 @@ def generate_ai_response(user_input):
 
 # Function: Convert text to speech using AWS Polly
 def text_to_speech(response_text):
-    unique_id = str(uuid.uuid4())  # Generate a unique filename
+    unique_id = str(uuid.uuid4())
     audio_file_path = f"response_{unique_id}.wav"
 
     response = polly_client.synthesize_speech(
@@ -113,17 +112,21 @@ def text_to_speech(response_text):
         audio_file.setframerate(16000)
         audio_file.writeframes(response["AudioStream"].read())
 
-    return audio_file_path  # Return the new file path
+    return audio_file_path
 
 
 @app.route("/chat", methods=["POST"])
 def chat():
     user_input = ""
+    transcribed_text = ""
+
     if "audio" in request.files:
         audio_file = request.files["audio"]
         audio_path = "temp_audio.wav"
         audio_file.save(audio_path)
-        user_input = speech_to_text(audio_path)
+        transcribed_text = speech_to_text(audio_path)
+        user_input = transcribed_text
+
     elif request.is_json:
         data = request.get_json()
         user_input = data.get("message", "")
@@ -132,13 +135,14 @@ def chat():
         return jsonify({"error": "No input provided"}), 400
 
     ai_response = generate_ai_response(user_input)
-    audio_response_path = text_to_speech(ai_response)  # Get new unique filename
+    audio_response_path = text_to_speech(ai_response)
 
     return jsonify(
         {
             "text_response": ai_response,
             "audio_response": request.host_url
             + f"audio/{os.path.basename(audio_response_path)}",
+            "transcribed_text": transcribed_text,
         }
     )
 

@@ -120,3 +120,72 @@
   color: #333;
   margin-top: 10px;
 }
+
+/* Record Button */
+.recordButton {
+  background: #3b82f6;
+  /* Matches the existing blue theme */
+  color: white;
+  border: none;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.2s ease-in-out, transform 0.1s ease-in-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: bold;
+}
+
+.recordButton:hover {
+  background: #2563eb;
+  /* Darker blue on hover */
+}
+
+.recordButton:active {
+  transform: scale(0.95);
+  /* Slight press effect */
+}
+
+/* Recording State */
+.recordingButton {
+  background: #ef4444;
+  /* Matches the existing red theme */
+  color: white;
+  border: none;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.2s ease-in-out, transform 0.1s ease-in-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: bold;
+}
+
+.recordingButton:hover {
+  background: #dc2626;
+  /* Darker red on hover */
+}
+
+.recordingButton:active {
+  transform: scale(0.95);
+}
+
+/* Icon inside button */
+.recordIcon {
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+}
+
+/* Audio Controls */
+.audioControls {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
