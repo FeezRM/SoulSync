@@ -1,14 +1,19 @@
+import os
+from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import openai
 import whisper  # For speech-to-text
 from textblob import TextBlob  # For sentiment analysis
 
+# Load environment variables from .env
+load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
 app = Flask(__name__)
 CORS(app)  # Enable Cross-Origin Resource Sharing for frontend communication
 
-# Initialize OpenAI API (Ensure you have your API key)
-OPENAI_API_KEY = "your-api-key-here"
+# Initialize OpenAI API client
 client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
 
