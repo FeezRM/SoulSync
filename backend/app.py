@@ -1,78 +1,151 @@
 import os
+import boto3
 import google.generativeai as genai
 from dotenv import load_dotenv
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
+import wave
+import uuid
+import json
 
 # Load environment variables
 load_dotenv()
+AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY_ID")
+AWS_SECRET_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+AWS_REGION = os.getenv("AWS_REGION", "ca-central-1")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-# Initialize Google Gemini AI API
+# Initialize AWS clients
+transcribe_client = boto3.client(
+    "transcribe",
+    aws_access_key_id=AWS_ACCESS_KEY,
+    aws_secret_access_key=AWS_SECRET_KEY,
+    region_name=AWS_REGION,
+)
+polly_client = boto3.client(
+    "polly",
+    aws_access_key_id=AWS_ACCESS_KEY,
+    aws_secret_access_key=AWS_SECRET_KEY,
+    region_name=AWS_REGION,
+)
+s3_client = boto3.client(
+    "s3",
+    aws_access_key_id=AWS_ACCESS_KEY,
+    aws_secret_access_key=AWS_SECRET_KEY,
+    region_name=AWS_REGION,
+)
+
+# Initialize Google Gemini AI
 genai.configure(api_key=GEMINI_API_KEY)
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for frontend communication
+CORS(app)
 
 
-# Function: Generate Sentiment Analysis using Gemini
-def generate_sentiment_analysis(user_input):
-    """Ask Gemini to classify the user's emotion based on input text."""
-    model = genai.GenerativeModel("gemini-pro")
-    prompt = f"""
-    Analyze the emotional tone of the following text and classify it into one of these categories:
-    - Positive
-    - Neutral
-    - Negative
-    - Angry
-    - Anxious
-    - Excited
-    - Depressed
+# Function: Upload file to S3
+def upload_to_s3(file_path, bucket_name, s3_filename):
+    s3_client.upload_file(file_path, bucket_name, s3_filename)
+    return f"s3://{bucket_name}/{s3_filename}"
 
-    Text: "{user_input}"
 
-    Respond only with the sentiment classification.
-    """
-    response = model.generate_content(prompt)
-    return response.text.strip()
+# Function: Convert Speech to Text using AWS Transcribe
+def speech_to_text(audio_file):
+    bucket_name = "my-ai-audio-bucket"  # S3 bucket where audio is stored
+    output_bucket = "my-ai-transcript-bucket"  # S3 bucket for transcript storage
+    s3_filename = str(uuid.uuid4()) + ".wav"
+
+    s3_uri = upload_to_s3(audio_file, bucket_name, s3_filename)
+    transcribe_job_name = "transcription-" + str(uuid.uuid4())
+
+    transcribe_client.start_transcription_job(
+        TranscriptionJobName=transcribe_job_name,
+        Media={"MediaFileUri": s3_uri},
+        MediaFormat="wav",
+        LanguageCode="en-US",
+        OutputBucketName=output_bucket,
+    )
+
+    while True:
+        response = transcribe_client.get_transcription_job(
+            TranscriptionJobName=transcribe_job_name
+        )
+        status = response["TranscriptionJob"]["TranscriptionJobStatus"]
+        if status in ["COMPLETED", "FAILED"]:
+            break
+
+    if status == "COMPLETED":
+        transcript_key = f"{transcribe_job_name}.json"
+        transcript_data = (
+            s3_client.get_object(Bucket=output_bucket, Key=transcript_key)["Body"]
+            .read()
+            .decode("utf-8")
+        )
+
+        # Load full transcript JSON
+        transcript_json = json.loads(transcript_data)
+        transcript_text = transcript_json["results"]["transcripts"][0]["transcript"]
+        latest_message = transcript_text.strip()
+        return latest_message if latest_message else "Could not extract speech"
+
+    return "Transcription failed"
 
 
 # Function: Generate AI Response using Gemini
 def generate_ai_response(user_input):
-    """Generate an emotionally intelligent AI response."""
-    sentiment = generate_sentiment_analysis(user_input)
-
     model = genai.GenerativeModel("gemini-pro")
-    prompt = f"""
-    You are an AI therapist. A user is talking to you. Based on their message, you must provide a thoughtful and empathetic response.
-    
-    The detected emotion is: {sentiment}.
-    
-    If the emotion is positive, be uplifting.
-    If the emotion is negative, be comforting and understanding.
-    If the user seems anxious, provide calming techniques.
-    If the user seems depressed, offer support and suggest self-care methods.
-
-    Here is the user's message: "{user_input}"
-
-    Your response:
-    """
+    prompt = f"You are an AI therapist. Respond compassionately to this message: {user_input}"
     response = model.generate_content(prompt)
     return response.text.strip()
 
 
+# Function: Convert text to speech using AWS Polly
+def text_to_speech(response_text):
+    unique_id = str(uuid.uuid4())  # Generate a unique filename
+    audio_file_path = f"response_{unique_id}.wav"
+
+    response = polly_client.synthesize_speech(
+        Text=response_text, OutputFormat="pcm", VoiceId="Joanna"
+    )
+
+    with wave.open(audio_file_path, "wb") as audio_file:
+        audio_file.setnchannels(1)
+        audio_file.setsampwidth(2)
+        audio_file.setframerate(16000)
+        audio_file.writeframes(response["AudioStream"].read())
+
+    return audio_file_path  # Return the new file path
+
+
 @app.route("/chat", methods=["POST"])
 def chat():
-    data = request.get_json()
-    user_input = data.get("message", "")
+    user_input = ""
+    if "audio" in request.files:
+        audio_file = request.files["audio"]
+        audio_path = "temp_audio.wav"
+        audio_file.save(audio_path)
+        user_input = speech_to_text(audio_path)
+    elif request.is_json:
+        data = request.get_json()
+        user_input = data.get("message", "")
 
-    # Use Gemini for sentiment analysis
-    sentiment = generate_sentiment_analysis(user_input)
+    if not user_input:
+        return jsonify({"error": "No input provided"}), 400
 
-    # Generate AI response using Gemini
     ai_response = generate_ai_response(user_input)
+    audio_response_path = text_to_speech(ai_response)  # Get new unique filename
 
-    return jsonify({"response": ai_response, "sentiment": sentiment})
+    return jsonify(
+        {
+            "text_response": ai_response,
+            "audio_response": request.host_url
+            + f"audio/{os.path.basename(audio_response_path)}",
+        }
+    )
+
+
+@app.route("/audio/<filename>", methods=["GET"])
+def get_audio(filename):
+    return send_file(filename, mimetype="audio/wav")
 
 
 if __name__ == "__main__":
