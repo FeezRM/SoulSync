@@ -1,6 +1,9 @@
-Flask
-flask-cors
-python-dotenv
-google-generativeai
-boto3
-awscli
+Flask==2.2.5
+Flask-Cors==3.0.10
+boto3==1.28.57
+google-generativeai==0.2.2
+python-dotenv==1.0.0
+wave==0.0.2
+uuid==1.30
+requests==2.31.0
+numpy==1.24.3
