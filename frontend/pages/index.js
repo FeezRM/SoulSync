@@ -20,7 +20,7 @@ export default function Home() {
 
     try {
       setIsLoading(true);
-      const res = await axios.post("http://127.0.0.1:5000/chat", { message });
+      const res = await axios.post("http://127.0.0.1:8080/chat", { message });
 
       setMessages([...newMessages, { text: res.data.text_response, sender: "ai" }]);
 
