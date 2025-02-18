@@ -92,7 +92,17 @@ def speech_to_text(audio_file):
 # Function: Generate AI Response using Gemini
 def generate_ai_response(user_input):
     model = genai.GenerativeModel("gemini-pro")
-    prompt = f"You are an AI therapist. Respond compassionately to this message: {user_input}"
+    prompt = f"""
+    You are an AI therapist named SoulSync. Your job is to provide short but meaningful responses that:
+    1. **Acknowledge** the user's emotions or situation.
+    2. **Give clear, actionable advice** to help them improve their mental well-being.
+
+    Be **concise** (2-3 sentences max) and **empathetic**. Your responses should be **non-judgmental** and encourage **practical steps**.
+
+    User: "{user_input}"
+
+    SoulSync Response:
+    """
     response = model.generate_content(prompt)
     return response.text.strip()
 
