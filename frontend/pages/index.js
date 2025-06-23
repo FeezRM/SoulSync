@@ -1,5 +1,8 @@
+"use client"; // Ensures Next.js renders this only on client-side
+
 import { useState, useRef } from "react";
 import axios from "axios";
+import Avatar from "./avatar"; // Import 3D avatar
 import styles from "../styles/Home.module.css";
 
 export default function Home() {
@@ -7,10 +10,12 @@ export default function Home() {
   const [message, setMessage] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [audioUrl, setAudioUrl] = useState(null);
   const audioRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
 
+  // 📩 Send Text Message
   const sendMessage = async () => {
     if (!message.trim()) return;
     const newMessages = [...messages, { text: message, sender: "user" }];
@@ -20,8 +25,11 @@ export default function Home() {
     try {
       setIsLoading(true);
       const res = await axios.post("http://127.0.0.1:5000/chat", { message });
+
       setMessages([...newMessages, { text: res.data.text_response, sender: "ai" }]);
+
       if (res.data.audio_response) {
+        setAudioUrl(res.data.audio_response);
         playAudio(res.data.audio_response);
       }
     } catch (error) {
@@ -32,6 +40,7 @@ export default function Home() {
     }
   };
 
+  // 🔊 Play AI Speech Response
   const playAudio = (audioUrl) => {
     if (audioRef.current) {
       audioRef.current.src = audioUrl;
@@ -39,6 +48,7 @@ export default function Home() {
     }
   };
 
+  // 🎤 Start Voice Recording
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -61,12 +71,15 @@ export default function Home() {
           const res = await axios.post("http://127.0.0.1:5000/chat", formData, {
             headers: { "Content-Type": "multipart/form-data" },
           });
+
           setMessages((prevMessages) => [
             ...prevMessages,
             { text: res.data.transcribed_text || "🎤 Voice message sent", sender: "user" },
             { text: res.data.text_response, sender: "ai" },
           ]);
+
           if (res.data.audio_response) {
+            setAudioUrl(res.data.audio_response);
             playAudio(res.data.audio_response);
           }
         } catch (error) {
@@ -85,6 +98,7 @@ export default function Home() {
     }
   };
 
+  // ⏹ Stop Recording
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
@@ -92,10 +106,13 @@ export default function Home() {
     }
   };
 
+  // ❌ End Session - Clears Everything
   const endSession = () => {
     if (window.confirm("Are you sure you want to end this session? All messages will be cleared.")) {
       setMessages([]);
       setMessage("");
+      setAudioUrl(null); // Stop AI avatar voice
+
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.currentTime = 0;
@@ -106,7 +123,14 @@ export default function Home() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.rectangleContainer}></div>
+      {/* Avatar with Box */}
+      <div className={styles.avatarContainer}>
+        <div className={styles.avatarBox}>
+          <Avatar audioUrl={audioUrl} stopAudio={!audioUrl} />
+        </div>
+      </div>
+
+      {/* Chat Container */}
       <div className={styles.chatContainer}>
         <h1 className={styles.title}>SoulSync AI Therapist</h1>
         <div className={styles.chatBox}>

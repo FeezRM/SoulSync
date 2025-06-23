@@ -1,6 +1,6 @@
 import os
 import boto3
-import google.generativeai as genai
+from openai import OpenAI
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
@@ -13,7 +13,7 @@ load_dotenv()
 AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY_ID")
 AWS_SECRET_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 AWS_REGION = os.getenv("AWS_REGION", "ca-central-1")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 
 # Initialize AWS clients
 transcribe_client = boto3.client(
@@ -35,8 +35,13 @@ s3_client = boto3.client(
     region_name=AWS_REGION,
 )
 
-# Initialize Google Gemini AI
-genai.configure(api_key=GEMINI_API_KEY)
+# Initialize OpenAI client
+OPENAI_ENDPOINT = "https://models.github.ai/inference"
+OPENAI_MODEL = "openai/gpt-4.1"
+openai_client = OpenAI(
+    base_url=OPENAI_ENDPOINT,
+    api_key=GITHUB_TOKEN,
+)
 
 app = Flask(__name__)
 CORS(app)
@@ -89,22 +94,26 @@ def speech_to_text(audio_file):
     return "Transcription failed"
 
 
-# Function: Generate AI Response using Gemini
+# Function: Generate AI Response using OpenAI
 def generate_ai_response(user_input):
-    model = genai.GenerativeModel("gemini-pro")
     prompt = f"""
     You are an AI therapist named SoulSync. Your job is to provide short but meaningful responses that:
     1. **Acknowledge** the user's emotions or situation.
     2. **Give clear, actionable advice** to help them improve their mental well-being.
 
     Be **concise** (2-3 sentences max) and **empathetic**. Your responses should be **non-judgmental** and encourage **practical steps**.
-
-    User: "{user_input}"
-
-    SoulSync Response:
     """
-    response = model.generate_content(prompt)
-    return response.text.strip()
+    messages = [
+        {"role": "system", "content": prompt},
+        {"role": "user", "content": user_input},
+    ]
+    response = openai_client.chat.completions.create(
+        messages=messages,
+        temperature=1.0,
+        top_p=1.0,
+        model=OPENAI_MODEL,
+    )
+    return response.choices[0].message.content.strip()
 
 
 # Function: Convert text to speech using AWS Polly

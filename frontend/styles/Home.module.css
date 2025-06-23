@@ -213,3 +213,28 @@
   background: rgba(255, 0, 0, 0.8);
   box-shadow: 0px 0px 15px rgba(255, 0, 0, 0.8);
 }
+
+.avatarContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: auto;
+  margin-bottom: 20px;
+}
+
+.avatarBox {
+  width: 500px;
+  /* 🔥 Increased Width */
+  height: 500px;
+  /* 🔥 Increased Height */
+  border: 5px solid #3b82f6;
+  /* 🔵 Thicker Border */
+  border-radius: 16px;
+  box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+}
