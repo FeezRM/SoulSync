@@ -6,6 +6,7 @@
 - [Tech Used](#tech-used)
 - [Backend Requirements](#backend-requirements)
 - [Setup](#setup)
+- [How to Run](#how-to-run)
 
 ## Overview
 Soul Sync is an AI-powered mental health support tool that allows users to interact via both **text and speech**. It responds in **both text and voice** while utilizing a **3D human model**, creating a more immersive therapy-like session. 
@@ -59,3 +60,37 @@ Soul Sync provides a **non-stigmatized, judgment-free** environment where users 
 ## Backend Requirements
 
 Ensure you have the following Python dependencies installed:
+
+---
+
+## How to Run
+
+### Prerequisites
+- Python 3.x
+- Node.js & npm
+- AWS credentials (for S3, Transcribe, Polly)
+- A valid GITHUB_TOKEN for OpenAI API access (see below)
+
+### Environment Variables
+Create a `.env` file in the `backend/` directory with the following:
+
+```
+AWS_ACCESS_KEY_ID=your_aws_access_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret_key
+AWS_REGION=ca-central-1
+GITHUB_TOKEN=your_github_token_here
+```
+
+### Running the Application
+
+#### On macOS/Linux:
+```
+./build_and_run.sh
+```
+
+#### On Windows:
+```
+build_and_run.bat
+```
+
+This will start both the backend (Flask) and frontend (Next.js) servers.
