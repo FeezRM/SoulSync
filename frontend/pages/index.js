@@ -11,6 +11,8 @@ export default function Home() {
   const [isRecording, setIsRecording] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [audioUrl, setAudioUrl] = useState(null);
+  const [showError, setShowError] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
   const audioRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -33,8 +35,15 @@ export default function Home() {
         playAudio(res.data.audio_response);
       }
     } catch (error) {
-      console.error("Error communicating with AI:", error);
-      alert("There was an error connecting to the AI.");
+      if (error.response && error.response.data && error.response.data.error) {
+        setErrorMsg(error.response.data.error);
+        setShowError(true);
+        // Remove the last user message so they can re-enter
+        setMessages(messages);
+      } else {
+        console.error("Error communicating with AI:", error);
+        alert("There was an error connecting to the AI.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -83,8 +92,13 @@ export default function Home() {
             playAudio(res.data.audio_response);
           }
         } catch (error) {
-          console.error("Error sending voice message:", error);
-          alert("There was an error sending the voice message.");
+          if (error.response && error.response.data && error.response.data.error) {
+            setErrorMsg(error.response.data.error);
+            setShowError(true);
+          } else {
+            console.error("Error sending voice message:", error);
+            alert("There was an error sending the voice message.");
+          }
         } finally {
           setIsLoading(false);
         }
@@ -123,6 +137,17 @@ export default function Home() {
 
   return (
     <div className={styles.page}>
+      {/* Error Modal */}
+      {showError && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <p>{errorMsg}</p>
+            <button onClick={() => setShowError(false)} className={styles.button}>
+              OK
+            </button>
+          </div>
+        </div>
+      )}
       {/* Avatar with Box */}
       <div className={styles.avatarContainer}>
         <div className={styles.avatarBox}>

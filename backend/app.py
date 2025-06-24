@@ -7,6 +7,7 @@ from flask_cors import CORS
 import wave
 import uuid
 import json
+import csv
 
 # Load environment variables
 load_dotenv()
@@ -134,6 +135,28 @@ def text_to_speech(response_text):
     return audio_file_path
 
 
+# Load racial slurs from CSV file
+RACIAL_SLURS = []
+RACIAL_SLURS_CSV = os.path.join(os.path.dirname(__file__), "racial_slurs.csv")
+try:
+    with open(RACIAL_SLURS_CSV, newline="", encoding="utf-8") as csvfile:
+        reader = csv.reader(csvfile)
+        for row in reader:
+            # Skip comments and empty lines
+            if row and not row[0].strip().startswith("#"):
+                RACIAL_SLURS.append(row[0].strip().lower())
+except Exception as e:
+    print(f"Warning: Could not load racial slurs list: {e}")
+
+
+def contains_racial_slur(text):
+    text_lower = text.lower()
+    for slur in RACIAL_SLURS:
+        if slur and slur in text_lower:
+            return True
+    return False
+
+
 @app.route("/chat", methods=["POST"])
 def chat():
     user_input = ""
@@ -152,6 +175,16 @@ def chat():
 
     if not user_input:
         return jsonify({"error": "No input provided"}), 400
+
+    if contains_racial_slur(user_input):
+        return (
+            jsonify(
+                {
+                    "error": "Your message contains language that is not allowed. Please re-enter your message without racial slurs."
+                }
+            ),
+            400,
+        )
 
     ai_response = generate_ai_response(user_input)
     audio_response_path = text_to_speech(ai_response)
