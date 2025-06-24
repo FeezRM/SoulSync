@@ -121,7 +121,7 @@ export default function Home() {
   };
 
   // ❌ End Session - Clears Everything
-  const endSession = () => {
+  const endSession = async () => {
     if (window.confirm("Are you sure you want to end this session? All messages will be cleared.")) {
       setMessages([]);
       setMessage("");
@@ -131,6 +131,13 @@ export default function Home() {
         audioRef.current.pause();
         audioRef.current.currentTime = 0;
         audioRef.current.src = "";
+      }
+
+      // Send POST request to backend to delete .wav files
+      try {
+        await axios.post("http://127.0.0.1:5000/end_session");
+      } catch (error) {
+        console.error("Error ending session on backend:", error);
       }
     }
   };

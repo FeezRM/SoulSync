@@ -8,6 +8,7 @@ import wave
 import uuid
 import json
 import csv
+import atexit
 
 # Load environment variables
 load_dotenv()
@@ -46,6 +47,9 @@ openai_client = OpenAI(
 
 app = Flask(__name__)
 CORS(app)
+
+# Track generated wav files for cleanup
+GENERATED_WAV_FILES = []
 
 
 # Function: Upload file to S3
@@ -132,6 +136,7 @@ def text_to_speech(response_text):
         audio_file.setframerate(16000)
         audio_file.writeframes(response["AudioStream"].read())
 
+    GENERATED_WAV_FILES.append(audio_file_path)
     return audio_file_path
 
 
@@ -202,6 +207,35 @@ def chat():
 @app.route("/audio/<filename>", methods=["GET"])
 def get_audio(filename):
     return send_file(filename, mimetype="audio/wav")
+
+
+@app.route("/end_session", methods=["POST"])
+def end_session():
+    backend_dir = os.path.dirname(os.path.abspath(__file__))
+    deleted_files = []
+    for filename in os.listdir(backend_dir):
+        if filename.endswith(".wav"):
+            file_path = os.path.join(backend_dir, filename)
+            try:
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                    deleted_files.append(filename)
+            except Exception as e:
+                print(f"Error deleting {file_path}: {e}")
+    return jsonify({"deleted": deleted_files}), 200
+
+
+# Cleanup function to delete all .wav files in the backend folder on exit
+def cleanup_wav_files():
+    backend_dir = os.path.dirname(os.path.abspath(__file__))
+    for filename in os.listdir(backend_dir):
+        if filename.endswith(".wav"):
+            file_path = os.path.join(backend_dir, filename)
+            try:
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+            except Exception as e:
+                print(f"Error deleting {file_path}: {e}")
 
 
 if __name__ == "__main__":
