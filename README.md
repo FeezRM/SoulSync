@@ -63,34 +63,39 @@ Ensure you have the following Python dependencies installed:
 
 ---
 
-## How to Run
+## Setup
 
-### Prerequisites
-- Python 3.x
-- Node.js & npm
-- AWS credentials (for S3, Transcribe, Polly)
-- A valid GITHUB_TOKEN for OpenAI API access (see below)
+Follow these steps to set up SoulSync:
 
-### Environment Variables
-Create a `.env` file in the `backend/` directory with the following:
-
-```
-AWS_ACCESS_KEY_ID=your_aws_access_key
-AWS_SECRET_ACCESS_KEY=your_aws_secret_key
-AWS_REGION=ca-central-1
-GITHUB_TOKEN=your_github_token_here
-```
-
-### Running the Application
-
-#### On macOS/Linux:
-```
-./build_and_run.sh
-```
-
-#### On Windows:
-```
-build_and_run.bat
-```
+1. **Install Python dependencies**
+   - Navigate to the `backend/` directory:
+     ```
+     cd backend
+     pip install -r requirements.txt
+     ```
+2. **Create a `.env` file**
+   - In the `backend/` directory, create a `.env` file and add the following (replace with your credentials):
+     ```
+     AWS_ACCESS_KEY_ID=your_aws_access_key
+     AWS_SECRET_ACCESS_KEY=your_aws_secret_key
+     AWS_REGION=ca-central-1
+     GITHUB_TOKEN=your_github_token_here
+     ```
+3. **Install Node.js dependencies**
+   - Navigate to the `frontend/` directory:
+     ```
+     cd ../frontend
+     npm install
+     ```
+4. **Run the application**
+   - From the project root, run the appropriate script for your OS:
+     - On macOS/Linux:
+       ```
+       ./build_and_run.sh
+       ```
+     - On Windows:
+       ```
+       build_and_run.bat
+       ```
 
 This will start both the backend (Flask) and frontend (Next.js) servers.
